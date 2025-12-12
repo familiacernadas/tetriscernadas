@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Tetris Cernadas</title>
+<link rel="stylesheet" href="tetriscernadas.css">
+</head>
+<body>
+<div id="app">
+  <header id="home">
+    <h1>Tetris Cernadas</h1>
+    <!-- Aquí irá el escudo: coloca escudo.png en /assets/escudo.png -->
+    <img id="family-shield" src="assets/escudo.png" alt="Escudo" class="shield">
+    <div class="login">
+      <input id="alias" placeholder="Alias">
+      <input id="password" type="password" placeholder="Contraseña">
+      <button id="login-btn">Entrar</button>
+    </div>
+  </header>
+
+  <main id="game" class="hidden">
+    <div class="top">
+      <span>Jugador: <b id="player-name"></b></span>
+      <span>Puntuación: <b id="score">0</b></span>
+    </div>
+
+    <canvas id="playfield"></canvas>
+
+    <!-- Controles táctiles -->
+    <div id="touch-controls">
+      <button data-act="left">←</button>
+      <button data-act="rotate">⟳</button>
+      <button data-act="right">→</button>
+      <button data-act="down">↓</button>
+      <button data-act="drop">⤓</button>
+    </div>
+  </main>
+</div>
+<script src="tetriscernadas.js"></script>
+</body>
+</html>

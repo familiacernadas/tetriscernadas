@@ -1,0 +1,9 @@
+
+body { margin:0; background:#0b1220; color:white; font-family:Arial; }
+#home { text-align:center; padding:20px; }
+.shield { width:140px; height:auto; margin:10px auto; display:block; }
+#game { padding:10px; }
+#playfield { width:100%; max-width:400px; background:#111; margin:10px auto; display:block; }
+#touch-controls { display:flex; justify-content:center; gap:10px; }
+#touch-controls button { font-size:24px; padding:10px; width:60px; border-radius:10px; }
+.hidden { display:none; }
