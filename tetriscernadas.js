@@ -1,3 +1,7 @@
+// tetriscernadas.js
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, push, get, child, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 // ---------------------------
 // VARIABLES GLOBALES
 // ---------------------------
@@ -32,37 +36,31 @@ const LETTERS = ['C','E','R','N','A','D','A','S'];
 
 // Colores por letra
 const COLORS = {
-  'C':'#FF4C4C',
-  'E':'#FFB84C',
-  'R':'#FFE74C',
-  'N':'#4CFF4C',
-  'A':'#4CFFFF',
-  'D':'#4C4CFF',
-  'S':'#B84CFF'
+  'C':'#FF4C4C','E':'#FFB84C','R':'#FFE74C','N':'#4CFF4C',
+  'A':'#4CFFFF','D':'#4C4CFF','S':'#B84CFF'
 };
 
 // Tetrominos clásicos
 const TETROMINOS = {
-  I:[[1,1,1,1]],
-  J:[[0,1],[0,1],[1,1]],
-  L:[[1,0],[1,0],[1,1]],
-  O:[[1,1],[1,1]],
-  S:[[0,1,1],[1,1,0]],
-  T:[[0,1,0],[1,1,1]],
-  Z:[[1,1,0],[0,1,1]]
+  I:[[1,1,1,1]], J:[[0,1],[0,1],[1,1]], L:[[1,0],[1,0],[1,1]],
+  O:[[1,1],[1,1]], S:[[0,1,1],[1,1,0]], T:[[0,1,0],[1,1,1]], Z:[[1,1,0],[0,1,1]]
 };
 
 // ---------------------------
-// LOGIN / REGISTRO FIREBASE
+// FIREBASE
 // ---------------------------
+const auth = getAuth();
+const db = getDatabase();
+
+// LOGIN / REGISTRO
 loginBtn.onclick = async () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
   if(!email || !password){ alert("Introduce correo y contraseña"); return; }
   try{
-    await auth.signInWithEmailAndPassword(email, password);
+    await signInWithEmailAndPassword(auth,email,password);
   }catch(e){
-    await auth.createUserWithEmailAndPassword(email, password);
+    await createUserWithEmailAndPassword(auth,email,password);
   }
   playerAlias = auth.currentUser.uid;
   playerNameEl.textContent = playerAlias;
@@ -73,7 +71,7 @@ loginBtn.onclick = async () => {
 };
 
 logoutBtn.onclick = async () => {
-  await auth.signOut();
+  await signOut(auth);
   location.reload();
 };
 
@@ -81,24 +79,25 @@ logoutBtn.onclick = async () => {
 // FUNCIONES FIREBASE
 // ---------------------------
 async function saveOnlineScore(userId, score, star){
-  const ref = db.ref('tetris_ranking/' + userId);
-  const snapshot = await ref.get();
+  const refScore = ref(db, 'tetris_ranking/' + userId);
+  const snapshot = await get(refScore);
   const best = snapshot.val() || { bestScore:0, star:false };
   const newBest = { bestScore: Math.max(score,best.bestScore), star: best.star || star };
-  await ref.set(newBest);
+  await set(refScore, newBest);
 }
 
 async function saveGame(userId, score){
-  const ref = db.ref('tetris_games/' + userId);
-  const newGameRef = ref.push();
-  await newGameRef.set({ score, date:Date.now(), formedCernadas });
+  const refGames = ref(db, 'tetris_games/' + userId);
+  const newGameRef = push(refGames);
+  await set(newGameRef, { score, date:Date.now(), formedCernadas });
 }
 
 async function showGlobalRanking(){
-  const snapshot = await db.ref('tetris_ranking').orderByChild('bestScore').limitToLast(10).get();
+  const snapshot = await get(ref(db, 'tetris_ranking'));
+  if(!snapshot.exists()) return;
   const list = [];
-  snapshot.forEach(s=>list.push({ userId:s.key, ...s.val() }));
-  list.reverse();
+  snapshot.forEach(s => list.push({ userId:s.key, ...s.val() }));
+  list.sort((a,b)=>b.bestScore-a.bestScore);
   rankingDiv.innerHTML = list.map((u,i)=>`<p>${i+1}. ${u.userId} – ${u.bestScore} pts ${u.star?"⭐":""}</p>`).join("");
 }
 
@@ -126,7 +125,6 @@ function newPiece(){
   const keys = Object.keys(TETROMINOS);
   const type = keys[Math.floor(Math.random()*keys.length)];
   const shape = TETROMINOS[type];
-  // Asignar letras aleatorias del apellido CERNADAS
   const letters = [];
   for(let i=0;i<shape.flat().filter(x=>x).length;i++){
     letters.push(LETTERS[Math.floor(Math.random()*LETTERS.length)]);
@@ -167,7 +165,7 @@ function drawBoard(){
     for(let r=0;r<currentPiece.shape.length;r++){
       for(let c=0;c<currentPiece.shape[r].length;c++){
         if(currentPiece.shape[r][c]){
-          drawBlock(currentX+c, currentY+r, currentPiece.letters[lIndex]);
+          drawBlock(currentX+c,currentY+r,currentPiece.letters[lIndex]);
           lIndex++;
         }
       }
@@ -178,20 +176,9 @@ function drawBoard(){
 // ---------------------------
 // MOVER PIEZA
 // ---------------------------
-function movePiece(dx){
-  if(!collide(board,currentPiece,currentX+dx,currentY)){
-    currentX += dx;
-  }
-}
-
-function dropPiece(){
-  if(!collide(board,currentPiece,currentX,currentY+1)){
-    currentY++;
-  }else{
-    placePiece();
-    newPiece();
-  }
-}
+function movePiece(dx){ if(!collide(board,currentPiece,currentX+dx,currentY)) currentX+=dx; }
+function dropPiece(){ if(!collide(board,currentPiece,currentX,currentY+1)){ currentY++; } else { placePiece(); newPiece(); } }
+function hardDrop(){ while(!collide(board,currentPiece,currentX,currentY+1)) currentY++; placePiece(); newPiece(); }
 
 // ---------------------------
 // COLOCAR PIEZA
@@ -231,10 +218,8 @@ function clearLines(){
 
 // ---------------------------
 // DETECTAR "CERNADAS"
-// ---------------------------
 function checkCernadas(){
   const word = "CERNADAS";
-  // Buscar horizontal
   for(let r=0;r<ROWS;r++){
     for(let c=0;c<=COLS-word.length;c++){
       if(board[r].slice(c,c+word.length).join('')===word){
@@ -243,6 +228,16 @@ function checkCernadas(){
         saveOnlineScore(playerAlias,score,true);
       }
     }
+  }
+}
+
+// ---------------------------
+// ROTAR PIEZA
+// ---------------------------
+function rotatePiece(){
+  const temp = currentPiece.shape.map((_,i)=>currentPiece.shape.map(row=>row[i]).reverse());
+  if(!collide(board,{...currentPiece, shape: temp},currentX,currentY)){
+    currentPiece.shape = temp;
   }
 }
 
@@ -261,30 +256,10 @@ document.addEventListener("keydown", e=>{
 });
 
 // ---------------------------
-// ROTAR PIEZA
-// ---------------------------
-function rotatePiece(){
-  const temp = currentPiece.shape.map((_,i)=>currentPiece.shape.map(row=>row[i]).reverse());
-  const oldX = currentX;
-  if(!collide(board,{...currentPiece, shape: temp},currentX,currentY)){
-    currentPiece.shape = temp;
-  }
-}
-
-// ---------------------------
-// HARD DROP
-// ---------------------------
-function hardDrop(){
-  while(!collide(board,currentPiece,currentX,currentY+1)) currentY++;
-  placePiece();
-  newPiece();
-}
-
-// ---------------------------
 // CONTROLES TÁCTILES
 // ---------------------------
 document.querySelectorAll("#touch-controls button").forEach(btn=>{
-  btn.addEventListener("click", ()=> {
+  btn.addEventListener("click", ()=>{
     if(!currentPiece) return;
     const act = btn.dataset.act;
     if(act==="left") movePiece(-1);
@@ -306,10 +281,7 @@ function update(time=0){
   const delta = time - lastTime;
   lastTime = time;
   dropCounter += delta;
-  if(dropCounter > dropInterval){
-    dropPiece();
-    dropCounter=0;
-  }
+  if(dropCounter > dropInterval){ dropPiece(); dropCounter=0; }
   drawBoard();
   requestAnimationFrame(update);
 }
@@ -324,4 +296,5 @@ function startGame(alias){
   formedCernadas = false;
   newPiece();
   update();
+  showGlobalRanking();
 }
