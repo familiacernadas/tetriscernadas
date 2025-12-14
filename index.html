@@ -10,12 +10,12 @@
 <div id="app">
   <header id="home">
     <h1>Tetris Cernadas</h1>
-    <!-- Aquí irá el escudo: coloca escudo.png en /assets/escudo.png -->
-    <img id="family-shield" src="assets/escudo.png" alt="Escudo" class="shield">
+    <img id="family-shield" src="assets/escudo.png" alt="Escudo de la familia Cernadas" class="shield">
     <div class="login">
-      <input id="alias" placeholder="Alias">
+      <input id="email" type="email" placeholder="Correo">
       <input id="password" type="password" placeholder="Contraseña">
-      <button id="login-btn">Entrar</button>
+      <button id="login-btn">Entrar / Registrar</button>
+      <button id="logout-btn" class="hidden">Salir</button>
     </div>
   </header>
 
@@ -27,7 +27,6 @@
 
     <canvas id="playfield"></canvas>
 
-    <!-- Controles táctiles -->
     <div id="touch-controls">
       <button data-act="left">←</button>
       <button data-act="rotate">⟳</button>
@@ -35,8 +34,34 @@
       <button data-act="down">↓</button>
       <button data-act="drop">⤓</button>
     </div>
+
+    <div id="achievement"></div>
+    <div id="ranking"></div>
   </main>
 </div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+
+<script>
+  // Configuración de Firebase - sustituye con tus datos
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROYECTO.firebaseapp.com",
+    databaseURL: "https://TU_PROYECTO.firebaseio.com",
+    projectId: "TU_PROYECTO",
+    storageBucket: "TU_PROYECTO.appspot.com",
+    messagingSenderId: "TU_MESSAGING_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+</script>
+
 <script src="tetriscernadas.js"></script>
 </body>
 </html>
