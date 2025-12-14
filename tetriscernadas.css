@@ -1,4 +1,3 @@
-
 body { margin:0; background:#0b1220; color:white; font-family:Arial; }
 #home { text-align:center; padding:20px; }
 .shield { width:140px; height:auto; margin:10px auto; display:block; }
@@ -7,3 +6,7 @@ body { margin:0; background:#0b1220; color:white; font-family:Arial; }
 #touch-controls { display:flex; justify-content:center; gap:10px; }
 #touch-controls button { font-size:24px; padding:10px; width:60px; border-radius:10px; }
 .hidden { display:none; }
+.login input { padding:10px; margin:5px; }
+.login button { padding:10px; margin:5px; }
+#achievement { text-align:center; font-size:1.2em; margin-top:10px; }
+#ranking { text-align:center; margin-top:20px; }
