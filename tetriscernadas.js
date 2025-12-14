@@ -1,7 +1,4 @@
 // tetriscernadas.js
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set, push, get, child, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
 // ---------------------------
 // VARIABLES GLOBALES
 // ---------------------------
@@ -47,31 +44,30 @@ const TETROMINOS = {
 };
 
 // ---------------------------
-// FIREBASE
-// ---------------------------
-const auth = getAuth();
-const db = getDatabase();
-
 // LOGIN / REGISTRO
+// ---------------------------
 loginBtn.onclick = async () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
   if(!email || !password){ alert("Introduce correo y contraseña"); return; }
-  try{
-    await signInWithEmailAndPassword(auth,email,password);
-  }catch(e){
-    await createUserWithEmailAndPassword(auth,email,password);
+
+  try {
+    await auth.signInWithEmailAndPassword(email,password);
+  } catch(e) {
+    await auth.createUserWithEmailAndPassword(email,password);
   }
+
   playerAlias = auth.currentUser.uid;
   playerNameEl.textContent = playerAlias;
   gameDiv.classList.remove("hidden");
   loginBtn.classList.add("hidden");
   logoutBtn.classList.remove("hidden");
+
   startGame(playerAlias);
 };
 
 logoutBtn.onclick = async () => {
-  await signOut(auth);
+  await auth.signOut();
   location.reload();
 };
 
@@ -79,27 +75,31 @@ logoutBtn.onclick = async () => {
 // FUNCIONES FIREBASE
 // ---------------------------
 async function saveOnlineScore(userId, score, star){
-  const refScore = ref(db, 'tetris_ranking/' + userId);
-  const snapshot = await get(refScore);
+  const refScore = db.ref('tetris_ranking/' + userId);
+  const snapshot = await refScore.get();
   const best = snapshot.val() || { bestScore:0, star:false };
   const newBest = { bestScore: Math.max(score,best.bestScore), star: best.star || star };
-  await set(refScore, newBest);
+  await refScore.set(newBest);
 }
 
 async function saveGame(userId, score){
-  const refGames = ref(db, 'tetris_games/' + userId);
-  const newGameRef = push(refGames);
-  await set(newGameRef, { score, date:Date.now(), formedCernadas });
+  const refGames = db.ref('tetris_games/' + userId);
+  const newGameRef = refGames.push();
+  await newGameRef.set({ score, date:Date.now(), formedCernadas });
 }
 
 async function showGlobalRanking(){
-  const snapshot = await get(ref(db, 'tetris_ranking'));
-  if(!snapshot.exists()) return;
+  const snapshot = await db.ref('tetris_ranking').orderByChild('bestScore').limitToLast(10).once('value');
   const list = [];
   snapshot.forEach(s => list.push({ userId:s.key, ...s.val() }));
-  list.sort((a,b)=>b.bestScore-a.bestScore);
+  list.reverse();
   rankingDiv.innerHTML = list.map((u,i)=>`<p>${i+1}. ${u.userId} – ${u.bestScore} pts ${u.star?"⭐":""}</p>`).join("");
 }
+
+// ---------------------------
+// RESTO DEL JUEGO (tu código original, canvas, piezas, colisiones, etc.)
+// Mantén tu código tal como lo compartiste antes, solo cambiando auth/db al compat.
+
 
 // ---------------------------
 // UTILIDADES TETRIS
