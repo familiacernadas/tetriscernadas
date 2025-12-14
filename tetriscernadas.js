@@ -5,15 +5,17 @@
 let playerAlias = "";
 let score = 0;
 let formedCernadas = false;
+let gameActive = false;
 
 // DOM
 const loginBtn = document.getElementById("login-btn");
 const logoutBtn = document.getElementById("logout-btn");
+const finishBtn = document.getElementById("finish-btn");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const playerNameEl = document.getElementById("player-name");
 const achievement = document.getElementById("achievement");
-const rankingDiv = document.getElementById("ranking");
+const rankingList = document.getElementById("ranking-list");
 const gameDiv = document.getElementById("game");
 const canvas = document.getElementById("playfield");
 const ctx = canvas.getContext("2d");
@@ -51,17 +53,15 @@ loginBtn.onclick = async () => {
   const password = passwordInput.value.trim();
   if(!email || !password){ alert("Introduce correo y contraseña"); return; }
 
-  try {
-    await auth.signInWithEmailAndPassword(email,password);
-  } catch(e) {
-    await auth.createUserWithEmailAndPassword(email,password);
-  }
+  try { await auth.signInWithEmailAndPassword(email,password); }
+  catch(e){ await auth.createUserWithEmailAndPassword(email,password); }
 
   playerAlias = auth.currentUser.uid;
   playerNameEl.textContent = playerAlias;
   gameDiv.classList.remove("hidden");
   loginBtn.classList.add("hidden");
   logoutBtn.classList.remove("hidden");
+  gameActive = true;
 
   startGame(playerAlias);
 };
@@ -93,8 +93,39 @@ async function showGlobalRanking(){
   const list = [];
   snapshot.forEach(s => list.push({ userId:s.key, ...s.val() }));
   list.reverse();
-  rankingDiv.innerHTML = list.map((u,i)=>`<p>${i+1}. ${u.userId} – ${u.bestScore} pts ${u.star?"⭐":""}</p>`).join("");
+  rankingList.innerHTML = list.map((u,i)=>`<p>${i+1}. ${u.userId} – ${u.bestScore} pts ${u.star?"⭐":""}</p>`).join("");
 }
+
+// ---------------------------
+// GAME OVER
+// ---------------------------
+async function gameOver(){
+  if(!gameActive) return;
+  gameActive = false;
+  alert("¡Game Over!");
+  if(playerAlias){
+    await saveOnlineScore(playerAlias, score, formedCernadas);
+    await saveGame(playerAlias, score);
+    showGlobalRanking();
+  }
+  resetGame();
+}
+
+function resetGame(){
+  board = Array.from({length: ROWS}, () => Array(COLS).fill(''));
+  score = 0;
+  document.getElementById("score").textContent = score;
+  achievement.textContent = "";
+  formedCernadas = false;
+  currentPiece = null;
+}
+
+// Botón finalizar partida
+finishBtn.onclick = gameOver;
+
+// ---------------------------
+// RESTO DEL JUEGO (drawBlock, newPiece, collide, drawBoard, movePiece, dropPiece, placePiece, clearLines, checkCernadas, rotatePiece, hardDrop, teclado, controles táctiles, update, startGame)
+// Mantén tu código actual tal como lo compartiste antes, solo asegurándote de usar gameOver() en newPiece() si colisiona arriba.
 
 // ---------------------------
 // RESTO DEL JUEGO (tu código original, canvas, piezas, colisiones, etc.)
