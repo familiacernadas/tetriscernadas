@@ -23,6 +23,7 @@
     <div class="top">
       <span>Jugador: <b id="player-name"></b></span>
       <span>Puntuación: <b id="score">0</b></span>
+      <button id="finish-btn">Finalizar partida</button>
     </div>
 
     <canvas id="playfield"></canvas>
@@ -36,7 +37,10 @@
     </div>
 
     <div id="achievement"></div>
-    <div id="ranking"></div>
+    <div id="ranking">
+      <h2>Top 10 Jugadores</h2>
+      <div id="ranking-list"></div>
+    </div>
   </main>
 </div>
 
@@ -60,7 +64,6 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.database();
-
   window.auth = auth;
   window.db = db;
 </script>
