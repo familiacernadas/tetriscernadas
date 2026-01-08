@@ -1,4 +1,7 @@
-// tetriscernadas.js
+// ==================================================
+// TETRIS CERNADAS – JS ESTABLE (MEJOR SCORE)
+// ==================================================
+
 // ---------------------------
 // VARIABLES GLOBALES
 // ---------------------------
@@ -6,8 +9,11 @@ let playerAlias = "";
 let score = 0;
 let formedCernadas = false;
 let gameActive = false;
+let animationId = null;
 
+// ---------------------------
 // DOM
+// ---------------------------
 const loginBtn = document.getElementById("login-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const finishBtn = document.getElementById("finish-btn");
@@ -20,29 +26,38 @@ const gameDiv = document.getElementById("game");
 const canvas = document.getElementById("playfield");
 const ctx = canvas.getContext("2d");
 
-// Configuración canvas
+// ---------------------------
+// CANVAS
+// ---------------------------
 const COLS = 10;
 const ROWS = 20;
-const BLOCK_SIZE = 30;
-canvas.width = COLS * BLOCK_SIZE;
-canvas.height = ROWS * BLOCK_SIZE;
+const BLOCK = 30;
+canvas.width = COLS * BLOCK;
+canvas.height = ROWS * BLOCK;
 
-// Tablero
-let board = Array.from({length: ROWS}, () => Array(COLS).fill(''));
+// ---------------------------
+// TABLERO
+// ---------------------------
+let board = Array.from({ length: ROWS }, () => Array(COLS).fill(""));
 
-// Letras para las piezas (Apellido CERNADAS)
-const LETTERS = ['C','E','R','N','A','D','A','S'];
-
-// Colores por letra
+// ---------------------------
+// PIEZAS
+// ---------------------------
+const LETTERS = ["C", "E", "R", "N", "A", "D", "A", "S"];
 const COLORS = {
-  'C':'#FF4C4C','E':'#FFB84C','R':'#FFE74C','N':'#4CFF4C',
-  'A':'#4CFFFF','D':'#4C4CFF','S':'#B84CFF'
+  C: "#FF4C4C", E: "#FFB84C", R: "#FFE74C",
+  N: "#4CFF4C", A: "#4CFFFF",
+  D: "#4C4CFF", S: "#B84CFF"
 };
 
-// Tetrominos clásicos
 const TETROMINOS = {
-  I:[[1,1,1,1]], J:[[0,1],[0,1],[1,1]], L:[[1,0],[1,0],[1,1]],
-  O:[[1,1],[1,1]], S:[[0,1,1],[1,1,0]], T:[[0,1,0],[1,1,1]], Z:[[1,1,0],[0,1,1]]
+  I: [[1,1,1,1]],
+  J: [[0,1],[0,1],[1,1]],
+  L: [[1,0],[1,0],[1,1]],
+  O: [[1,1],[1,1]],
+  S: [[0,1,1],[1,1,0]],
+  T: [[0,1,0],[1,1,1]],
+  Z: [[1,1,0],[0,1,1]]
 };
 
 // ---------------------------
@@ -50,20 +65,22 @@ const TETROMINOS = {
 // ---------------------------
 loginBtn.onclick = async () => {
   const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-  if(!email || !password){ alert("Introduce correo y contraseña"); return; }
+  const pass = passwordInput.value.trim();
+  if (!email || !pass) return alert("Completa email y contraseña");
 
-  try { await auth.signInWithEmailAndPassword(email,password); }
-  catch(e){ await auth.createUserWithEmailAndPassword(email,password); }
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  }
 
   playerAlias = auth.currentUser.uid;
-  playerNameEl.textContent = playerAlias;
-  gameDiv.classList.remove("hidden");
+  playerNameEl.textContent = "Jugador";
   loginBtn.classList.add("hidden");
   logoutBtn.classList.remove("hidden");
-  gameActive = true;
+  gameDiv.classList.remove("hidden");
 
-  startGame(playerAlias);
+  startGame();
 };
 
 logoutBtn.onclick = async () => {
@@ -72,260 +89,192 @@ logoutBtn.onclick = async () => {
 };
 
 // ---------------------------
-// FUNCIONES FIREBASE
+// FIREBASE – MEJOR SCORE
 // ---------------------------
-async function saveOnlineScore(userId, score, star){
-  const refScore = db.ref('tetris_ranking/' + userId);
-  const snapshot = await refScore.get();
-  const best = snapshot.val() || { bestScore:0, star:false };
-  const newBest = { bestScore: Math.max(score,best.bestScore), star: best.star || star };
-  await refScore.set(newBest);
+async function saveBestScore(uid, score, star) {
+  const ref = db.ref("ranking/" + uid);
+  const snap = await ref.get();
+  const prev = snap.val();
+
+  if (!prev || score > prev.score) {
+    await ref.set({
+      score,
+      star: prev?.star || star,
+      updated: Date.now()
+    });
+  }
 }
 
-async function saveGame(userId, score){
-  const refGames = db.ref('tetris_games/' + userId);
-  const newGameRef = refGames.push();
-  await newGameRef.set({ score, date:Date.now(), formedCernadas });
-}
+async function loadRanking() {
+  rankingList.innerHTML = "<p>Cargando...</p>";
 
-async function showGlobalRanking(){
-  const snapshot = await db.ref('tetris_ranking').orderByChild('bestScore').limitToLast(10).once('value');
-  const list = [];
-  snapshot.forEach(s => list.push({ userId:s.key, ...s.val() }));
-  list.reverse();
-  rankingList.innerHTML = list.map((u,i)=>`<p>${i+1}. ${u.userId} – ${u.bestScore} pts ${u.star?"⭐":""}</p>`).join("");
+  const snap = await db.ref("ranking")
+    .orderByChild("score")
+    .limitToLast(10)
+    .get();
+
+  const data = [];
+  snap.forEach(s => data.push(s.val()));
+  data.reverse();
+
+  rankingList.innerHTML = data.length
+    ? data.map((u,i)=>`<p>${i+1}. ${u.score} pts ${u.star?"⭐":""}</p>`).join("")
+    : "<p>No hay puntuaciones</p>";
 }
 
 // ---------------------------
 // GAME OVER
 // ---------------------------
-async function gameOver(){
-  if(!gameActive) return;
+async function gameOver() {
+  if (!gameActive) return;
   gameActive = false;
-  alert("¡Game Over!");
-  if(playerAlias){
-    await saveOnlineScore(playerAlias, score, formedCernadas);
-    await saveGame(playerAlias, score);
-    showGlobalRanking();
+  cancelAnimationFrame(animationId);
+
+  if (playerAlias && score > 0) {
+    await saveBestScore(playerAlias, score, formedCernadas);
+    loadRanking();
   }
-  resetGame();
 }
 
-function resetGame(){
-  board = Array.from({length: ROWS}, () => Array(COLS).fill(''));
-  score = 0;
-  document.getElementById("score").textContent = score;
-  achievement.textContent = "";
-  formedCernadas = false;
-  currentPiece = null;
+// ---------------------------
+// DIBUJO
+// ---------------------------
+function drawBlock(x,y,l){
+  ctx.fillStyle = COLORS[l];
+  ctx.fillRect(x*BLOCK, y*BLOCK, BLOCK, BLOCK);
+  ctx.strokeRect(x*BLOCK, y*BLOCK, BLOCK, BLOCK);
+  ctx.fillStyle = "#000";
+  ctx.font = "18px Arial";
+  ctx.fillText(l, x*BLOCK+8, y*BLOCK+22);
 }
 
-// Botón finalizar partida
-finishBtn.onclick = gameOver;
-
-// ---------------------------
-// RESTO DEL JUEGO (drawBlock, newPiece, collide, drawBoard, movePiece, dropPiece, placePiece, clearLines, checkCernadas, rotatePiece, hardDrop, teclado, controles táctiles, update, startGame)
-// Mantén tu código actual tal como lo compartiste antes, solo asegurándote de usar gameOver() en newPiece() si colisiona arriba.
-
-// ---------------------------
-// RESTO DEL JUEGO (tu código original, canvas, piezas, colisiones, etc.)
-// Mantén tu código tal como lo compartiste antes, solo cambiando auth/db al compat.
-
-
-// ---------------------------
-// UTILIDADES TETRIS
-// ---------------------------
-function drawBlock(x,y,letter){
-  ctx.fillStyle = COLORS[letter] || '#888';
-  ctx.fillRect(x*BLOCK_SIZE, y*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-  ctx.strokeStyle = '#000';
-  ctx.strokeRect(x*BLOCK_SIZE, y*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-  ctx.fillStyle = '#000';
-  ctx.font = '20px Arial';
-  ctx.fillText(letter, x*BLOCK_SIZE + 8, y*BLOCK_SIZE + 22);
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  board.forEach((r,y)=>r.forEach((c,x)=>c && drawBlock(x,y,c)));
+  if (!current) return;
+  let i=0;
+  current.shape.forEach((r,y)=>
+    r.forEach((c,x)=>c && drawBlock(px+x, py+y, current.letters[i++])));
 }
 
 // ---------------------------
 // PIEZA ACTUAL
 // ---------------------------
-let currentPiece = null;
-let currentX = 0;
-let currentY = 0;
+let current=null, px=0, py=0;
 
 function newPiece(){
-  const keys = Object.keys(TETROMINOS);
-  const type = keys[Math.floor(Math.random()*keys.length)];
-  const shape = TETROMINOS[type];
-  const letters = [];
-  for(let i=0;i<shape.flat().filter(x=>x).length;i++){
-    letters.push(LETTERS[Math.floor(Math.random()*LETTERS.length)]);
-  }
-  currentPiece = {type, shape, letters};
-  currentX = Math.floor(COLS/2 - shape[0].length/2);
-  currentY = 0;
+  const shape = Object.values(TETROMINOS)[Math.floor(Math.random()*7)];
+  const letters = shape.flat().filter(Boolean)
+    .map(()=>LETTERS[Math.floor(Math.random()*LETTERS.length)]);
+  current = { shape, letters };
+  px = Math.floor(COLS/2 - shape[0].length/2);
+  py = 0;
+  if (collide(px,py)) gameOver();
+}
+
+function collide(x,y){
+  return current.shape.some((r,ry)=>
+    r.some((c,rx)=>{
+      if(!c) return false;
+      const nx=x+rx, ny=y+ry;
+      return nx<0 || nx>=COLS || ny>=ROWS || board[ny]?.[nx];
+    })
+  );
 }
 
 // ---------------------------
-// COLISION
+// MOVIMIENTO
 // ---------------------------
-function collide(board, piece, x, y){
-  for(let r=0;r<piece.shape.length;r++){
-    for(let c=0;c<piece.shape[r].length;c++){
-      if(piece.shape[r][c]){
-        if(board[y+r] && board[y+r][x+c] !== undefined){
-          if(board[y+r][x+c]!=='') return true;
-        }else return true;
-      }
-    }
-  }
-  return false;
+function move(dx){ if(!collide(px+dx,py)) px+=dx; }
+function drop(){
+  if(!collide(px,py+1)) py++;
+  else lock();
 }
 
-// ---------------------------
-// PINTAR TABLERO
-// ---------------------------
-function drawBoard(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      if(board[r][c]!=='') drawBlock(c,r,board[r][c]);
-    }
-  }
-  if(currentPiece){
-    let lIndex=0;
-    for(let r=0;r<currentPiece.shape.length;r++){
-      for(let c=0;c<currentPiece.shape[r].length;c++){
-        if(currentPiece.shape[r][c]){
-          drawBlock(currentX+c,currentY+r,currentPiece.letters[lIndex]);
-          lIndex++;
-        }
-      }
-    }
-  }
-}
-
-// ---------------------------
-// MOVER PIEZA
-// ---------------------------
-function movePiece(dx){ if(!collide(board,currentPiece,currentX+dx,currentY)) currentX+=dx; }
-function dropPiece(){ if(!collide(board,currentPiece,currentX,currentY+1)){ currentY++; } else { placePiece(); newPiece(); } }
-function hardDrop(){ while(!collide(board,currentPiece,currentX,currentY+1)) currentY++; placePiece(); newPiece(); }
-
-// ---------------------------
-// COLOCAR PIEZA
-// ---------------------------
-function placePiece(){
-  let lIndex=0;
-  for(let r=0;r<currentPiece.shape.length;r++){
-    for(let c=0;c<currentPiece.shape[r].length;c++){
-      if(currentPiece.shape[r][c]){
-        if(currentY+r>=0 && currentY+r<ROWS && currentX+c>=0 && currentX+c<COLS){
-          board[currentY+r][currentX+c] = currentPiece.letters[lIndex];
-        }
-        lIndex++;
-      }
-    }
-  }
+function lock(){
+  let i=0;
+  current.shape.forEach((r,y)=>
+    r.forEach((c,x)=>c && (board[py+y][px+x]=current.letters[i++])));
   clearLines();
+  newPiece();
+}
+
+function rotate(){
+  const p=current.shape;
+  const r=p[0].map((_,i)=>p.map(row=>row[i]).reverse());
+  current.shape=r;
+  if(collide(px,py)) current.shape=p;
 }
 
 // ---------------------------
-// LIMPIAR FILAS
+// LINEAS
 // ---------------------------
 function clearLines(){
-  let linesCleared=0;
-  for(let r=ROWS-1;r>=0;r--){
-    if(board[r].every(cell=>cell!=='')){
-      board.splice(r,1);
-      board.unshift(Array(COLS).fill(''));
-      linesCleared++;
-      r++;
+  for(let y=ROWS-1;y>=0;y--){
+    if(board[y].every(c=>c)){
+      board.splice(y,1);
+      board.unshift(Array(COLS).fill(""));
+      score+=10;
+      document.getElementById("score").textContent=score;
+      y++;
     }
   }
-  score += linesCleared*10;
-  document.getElementById("score").textContent = score;
   checkCernadas();
 }
 
 // ---------------------------
-// DETECTAR "CERNADAS"
+// CERNADAS
+// ---------------------------
 function checkCernadas(){
-  const word = "CERNADAS";
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<=COLS-word.length;c++){
-      if(board[r].slice(c,c+word.length).join('')===word){
+  const w="CERNADAS";
+  board.forEach(r=>{
+    for(let i=0;i<=COLS-w.length;i++){
+      if(r.slice(i,i+w.length).join("")===w){
         formedCernadas=true;
-        achievement.textContent = "⭐ Has formado CERNADAS!";
-        saveOnlineScore(playerAlias,score,true);
+        achievement.textContent="⭐ Has formado CERNADAS!";
       }
     }
-  }
-}
-
-// ---------------------------
-// ROTAR PIEZA
-// ---------------------------
-function rotatePiece(){
-  const temp = currentPiece.shape.map((_,i)=>currentPiece.shape.map(row=>row[i]).reverse());
-  if(!collide(board,{...currentPiece, shape: temp},currentX,currentY)){
-    currentPiece.shape = temp;
-  }
-}
-
-// ---------------------------
-// TECLADO
-// ---------------------------
-document.addEventListener("keydown", e=>{
-  if(!currentPiece) return;
-  switch(e.key){
-    case "ArrowLeft": movePiece(-1); break;
-    case "ArrowRight": movePiece(1); break;
-    case "ArrowDown": dropPiece(); break;
-    case "ArrowUp": rotatePiece(); break;
-    case " ": hardDrop(); break;
-  }
-});
-
-// ---------------------------
-// CONTROLES TÁCTILES
-// ---------------------------
-document.querySelectorAll("#touch-controls button").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    if(!currentPiece) return;
-    const act = btn.dataset.act;
-    if(act==="left") movePiece(-1);
-    else if(act==="right") movePiece(1);
-    else if(act==="down") dropPiece();
-    else if(act==="rotate") rotatePiece();
-    else if(act==="drop") hardDrop();
   });
+}
+
+// ---------------------------
+// LOOP
+// ---------------------------
+let last=0,timer=0;
+function update(t=0){
+  if(!gameActive) return;
+  timer+=t-last; last=t;
+  if(timer>600){ drop(); timer=0; }
+  draw();
+  animationId=requestAnimationFrame(update);
+}
+
+// ---------------------------
+// START
+// ---------------------------
+function startGame(){
+  board=Array.from({length:ROWS},()=>Array(COLS).fill(""));
+  score=0;
+  formedCernadas=false;
+  gameActive=true;
+  document.getElementById("score").textContent="0";
+  achievement.textContent="";
+  newPiece();
+  loadRanking();
+  animationId=requestAnimationFrame(update);
+}
+
+// ---------------------------
+// CONTROLES
+// ---------------------------
+document.addEventListener("keydown",e=>{
+  if(!gameActive) return;
+  if(e.key==="ArrowLeft") move(-1);
+  if(e.key==="ArrowRight") move(1);
+  if(e.key==="ArrowDown") drop();
+  if(e.key==="ArrowUp") rotate();
+  if(e.key===" ") while(!collide(px,py+1)) py++;
 });
 
 // ---------------------------
-// BUCLE DEL JUEGO
-// ---------------------------
-let dropCounter=0;
-let dropInterval=500;
-let lastTime=0;
-
-function update(time=0){
-  const delta = time - lastTime;
-  lastTime = time;
-  dropCounter += delta;
-  if(dropCounter > dropInterval){ dropPiece(); dropCounter=0; }
-  drawBoard();
-  requestAnimationFrame(update);
-}
-
-// ---------------------------
-// INICIAR JUEGO
-// ---------------------------
-function startGame(alias){
-  playerAlias = alias;
-  board = Array.from({length: ROWS}, () => Array(COLS).fill(''));
-  score = 0;
-  formedCernadas = false;
-  newPiece();
-  update();
-  showGlobalRanking();
-}
+finishBtn.onclick = gameOver;
