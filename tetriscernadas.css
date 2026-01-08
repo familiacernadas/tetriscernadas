@@ -1,12 +1,205 @@
-body { margin:0; background:#0b1220; color:white; font-family:Arial; }
-#home { text-align:center; padding:20px; }
-.shield { width:140px; height:auto; margin:10px auto; display:block; }
-#game { padding:10px; }
-#playfield { width:100%; max-width:400px; background:#111; margin:10px auto; display:block; }
-#touch-controls { display:flex; justify-content:center; gap:10px; }
-#touch-controls button { font-size:24px; padding:10px; width:60px; border-radius:10px; }
-.hidden { display:none; }
-.login input { padding:10px; margin:5px; }
-.login button { padding:10px; margin:5px; }
-#achievement { text-align:center; font-size:1.2em; margin-top:10px; }
-#ranking { text-align:center; margin-top:20px; }
+/* ===========================
+   RESET Y BASE
+=========================== */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #18233f, #0b1220);
+  color: #ffffff;
+  font-family: "Segoe UI", Arial, sans-serif;
+  text-align: center;
+}
+
+/* ===========================
+   HOME / LOGIN
+=========================== */
+#home {
+  padding: 20px;
+}
+
+#home h1 {
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.shield {
+  width: 140px;
+  max-width: 50%;
+  height: auto;
+  margin: 10px auto;
+  display: block;
+}
+
+.login {
+  margin-top: 15px;
+}
+
+.login input {
+  padding: 12px;
+  margin: 6px;
+  width: 220px;
+  max-width: 90%;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+}
+
+.login button {
+  padding: 12px 18px;
+  margin: 6px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #3b82f6;
+  color: white;
+}
+
+.login button:hover {
+  background: #2563eb;
+}
+
+/* ===========================
+   JUEGO
+=========================== */
+#game {
+  padding: 10px;
+}
+
+/* Barra superior */
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  margin: 0 auto 8px;
+  font-size: 14px;
+}
+
+.top span {
+  white-space: nowrap;
+}
+
+#finish-btn {
+  padding: 6px 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  cursor: pointer;
+}
+
+#finish-btn:hover {
+  background: #dc2626;
+}
+
+/* ===========================
+   CANVAS
+=========================== */
+#playfield {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1 / 2;
+  background: #0f172a;
+  border: 3px solid #1e293b;
+  border-radius: 8px;
+  margin: 10px auto;
+  display: block;
+}
+
+/* ===========================
+   CONTROLES TÁCTILES
+=========================== */
+#touch-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+#touch-controls button {
+  font-size: 24px;
+  padding: 14px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  border: none;
+  background: #334155;
+  color: white;
+  cursor: pointer;
+}
+
+#touch-controls button:active {
+  transform: scale(0.95);
+  background: #475569;
+}
+
+/* ===========================
+   LOGROS
+=========================== */
+#achievement {
+  text-align: center;
+  font-size: 1.1em;
+  margin-top: 12px;
+  color: #fde047;
+  min-height: 1.5em;
+}
+
+/* ===========================
+   RANKING
+=========================== */
+#ranking {
+  margin: 20px auto;
+  max-width: 420px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+#ranking h2 {
+  margin: 5px 0 10px;
+}
+
+#ranking-list p {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  margin: 4px 0;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* ===========================
+   UTILIDADES
+=========================== */
+.hidden {
+  display: none;
+}
+
+/* ===========================
+   RESPONSIVE EXTRA
+=========================== */
+@media (max-width: 480px) {
+  .top {
+    font-size: 13px;
+  }
+
+  #finish-btn {
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+
+  #touch-controls button {
+    width: 60px;
+    height: 60px;
+    font-size: 22px;
+  }
+}
