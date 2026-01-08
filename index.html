@@ -1,50 +1,87 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Tetris Cernadas</title>
-<link rel="stylesheet" href="tetriscernadas.css">
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+  >
+  <title>Tetris Cernadas</title>
+  <link rel="stylesheet" href="tetriscernadas.css">
 </head>
+
 <body>
 <div id="app">
+
+  <!-- ======================
+       HOME / LOGIN
+  ======================= -->
   <header id="home">
     <h1>Tetris Cernadas</h1>
-    <img id="family-shield" src="assets/escudo.png" alt="Escudo de la familia Cernadas" class="shield">
+
+    <img
+      id="family-shield"
+      src="assets/escudo.png"
+      alt="Escudo de la familia Cernadas"
+      class="shield"
+    >
+
     <div class="login">
-      <input id="email" type="email" placeholder="Correo">
-      <input id="password" type="password" placeholder="Contraseña">
+      <input
+        id="email"
+        type="email"
+        placeholder="Correo"
+        autocomplete="username"
+      >
+
+      <input
+        id="password"
+        type="password"
+        placeholder="Contraseña"
+        autocomplete="current-password"
+      >
+
       <button id="login-btn">Entrar / Registrar</button>
       <button id="logout-btn" class="hidden">Salir</button>
     </div>
   </header>
 
+  <!-- ======================
+       JUEGO
+  ======================= -->
   <main id="game" class="hidden">
+
     <div class="top">
       <span>Jugador: <b id="player-name"></b></span>
       <span>Puntuación: <b id="score">0</b></span>
-      <button id="finish-btn">Finalizar partida</button>
+      <button id="finish-btn">Finalizar</button>
     </div>
 
     <canvas id="playfield"></canvas>
 
+    <!-- CONTROLES TÁCTILES -->
     <div id="touch-controls">
-      <button data-act="left">←</button>
-      <button data-act="rotate">⟳</button>
-      <button data-act="right">→</button>
-      <button data-act="down">↓</button>
-      <button data-act="drop">⤓</button>
+      <button data-act="left" aria-label="Mover izquierda">←</button>
+      <button data-act="rotate" aria-label="Rotar">⟳</button>
+      <button data-act="right" aria-label="Mover derecha">→</button>
+      <button data-act="down" aria-label="Bajar">↓</button>
+      <button data-act="drop" aria-label="Caída rápida">⤓</button>
     </div>
 
     <div id="achievement"></div>
-    <div id="ranking">
-      <h2>Top 10 Jugadores</h2>
+
+    <!-- RANKING -->
+    <section id="ranking">
+      <h2>🏆 Top 10 Jugadores</h2>
       <div id="ranking-list"></div>
-    </div>
+    </section>
+
   </main>
 </div>
 
-<!-- Firebase compat -->
+<!-- ======================
+     FIREBASE (compat)
+======================= -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -57,17 +94,18 @@
     projectId: "tetris-cernadas",
     storageBucket: "tetris-cernadas.firebasestorage.app",
     messagingSenderId: "272340801550",
-    appId: "1:272340801550:web:b022455106d9ef5d15445f",
-    measurementId: "G-EMES8LC3EE"
+    appId: "1:272340801550:web:b022455106d9ef5d15445f"
   };
 
   firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
-  window.auth = auth;
-  window.db = db;
+  window.auth = firebase.auth();
+  window.db = firebase.database();
 </script>
 
+<!-- ======================
+     JUEGO
+======================= -->
 <script src="tetriscernadas.js"></script>
+
 </body>
 </html>
