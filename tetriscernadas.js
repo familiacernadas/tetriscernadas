@@ -43,21 +43,21 @@ let board = Array.from({ length: ROWS }, () => Array(COLS).fill(""));
 // ---------------------------
 // PIEZAS
 // ---------------------------
-const LETTERS = ["C", "E", "R", "N", "A", "D", "A", "S"];
+const LETTERS = ["C","E","R","N","A","D","A","S"];
 const COLORS = {
-  C: "#FF4C4C", E: "#FFB84C", R: "#FFE74C",
-  N: "#4CFF4C", A: "#4CFFFF",
-  D: "#4C4CFF", S: "#B84CFF"
+  C:"#FF4C4C", E:"#FFB84C", R:"#FFE74C",
+  N:"#4CFF4C", A:"#4CFFFF",
+  D:"#4C4CFF", S:"#B84CFF"
 };
 
 const TETROMINOS = {
-  I: [[1,1,1,1]],
-  J: [[0,1],[0,1],[1,1]],
-  L: [[1,0],[1,0],[1,1]],
-  O: [[1,1],[1,1]],
-  S: [[0,1,1],[1,1,0]],
-  T: [[0,1,0],[1,1,1]],
-  Z: [[1,1,0],[0,1,1]]
+  I:[[1,1,1,1]],
+  J:[[0,1],[0,1],[1,1]],
+  L:[[1,0],[1,0],[1,1]],
+  O:[[1,1],[1,1]],
+  S:[[0,1,1],[1,1,0]],
+  T:[[0,1,0],[1,1,1]],
+  Z:[[1,1,0],[0,1,1]]
 };
 
 // ---------------------------
@@ -66,7 +66,10 @@ const TETROMINOS = {
 loginBtn.onclick = async () => {
   const email = emailInput.value.trim();
   const pass = passwordInput.value.trim();
-  if (!email || !pass) return alert("Completa email y contraseña");
+  if (!email || !pass) {
+    alert("Completa email y contraseña");
+    return;
+  }
 
   try {
     await auth.signInWithEmailAndPassword(email, pass);
@@ -89,7 +92,7 @@ logoutBtn.onclick = async () => {
 };
 
 // ---------------------------
-// FIREBASE – MEJOR SCORE
+// FIREBASE – MEJOR SCORE POR JUGADOR
 // ---------------------------
 async function saveBestScore(uid, score, star) {
   const ref = db.ref("ranking/" + uid);
@@ -118,7 +121,12 @@ async function loadRanking() {
   data.reverse();
 
   rankingList.innerHTML = data.length
-    ? data.map((u,i)=>`<p>${i+1}. ${u.score} pts ${u.star?"⭐":""}</p>`).join("")
+    ? data.map((u,i)=>`
+        <p>
+          <span>${i+1}.</span>
+          <span>${u.score} pts ${u.star ? "⭐" : ""}</span>
+        </p>
+      `).join("")
     : "<p>No hay puntuaciones</p>";
 }
 
@@ -127,12 +135,13 @@ async function loadRanking() {
 // ---------------------------
 async function gameOver() {
   if (!gameActive) return;
+
   gameActive = false;
   cancelAnimationFrame(animationId);
 
   if (playerAlias && score > 0) {
     await saveBestScore(playerAlias, score, formedCernadas);
-    loadRanking();
+    await loadRanking();
   }
 }
 
@@ -142,6 +151,7 @@ async function gameOver() {
 function drawBlock(x,y,l){
   ctx.fillStyle = COLORS[l];
   ctx.fillRect(x*BLOCK, y*BLOCK, BLOCK, BLOCK);
+  ctx.strokeStyle = "#000";
   ctx.strokeRect(x*BLOCK, y*BLOCK, BLOCK, BLOCK);
   ctx.fillStyle = "#000";
   ctx.font = "18px Arial";
@@ -151,6 +161,7 @@ function drawBlock(x,y,l){
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   board.forEach((r,y)=>r.forEach((c,x)=>c && drawBlock(x,y,c)));
+
   if (!current) return;
   let i=0;
   current.shape.forEach((r,y)=>
@@ -166,9 +177,11 @@ function newPiece(){
   const shape = Object.values(TETROMINOS)[Math.floor(Math.random()*7)];
   const letters = shape.flat().filter(Boolean)
     .map(()=>LETTERS[Math.floor(Math.random()*LETTERS.length)]);
+
   current = { shape, letters };
   px = Math.floor(COLS/2 - shape[0].length/2);
   py = 0;
+
   if (collide(px,py)) gameOver();
 }
 
@@ -186,6 +199,7 @@ function collide(x,y){
 // MOVIMIENTO
 // ---------------------------
 function move(dx){ if(!collide(px+dx,py)) px+=dx; }
+
 function drop(){
   if(!collide(px,py+1)) py++;
   else lock();
@@ -226,12 +240,14 @@ function clearLines(){
 // CERNADAS
 // ---------------------------
 function checkCernadas(){
-  const w="CERNADAS";
+  const word="CERNADAS";
   board.forEach(r=>{
-    for(let i=0;i<=COLS-w.length;i++){
-      if(r.slice(i,i+w.length).join("")===w){
-        formedCernadas=true;
-        achievement.textContent="⭐ Has formado CERNADAS!";
+    for(let i=0;i<=COLS-word.length;i++){
+      if(r.slice(i,i+word.length).join("")===word){
+        if(!formedCernadas){
+          formedCernadas=true;
+          achievement.textContent="⭐ Has formado CERNADAS!";
+        }
       }
     }
   });
@@ -240,7 +256,7 @@ function checkCernadas(){
 // ---------------------------
 // LOOP
 // ---------------------------
-let last=0,timer=0;
+let last=0, timer=0;
 function update(t=0){
   if(!gameActive) return;
   timer+=t-last; last=t;
@@ -250,15 +266,17 @@ function update(t=0){
 }
 
 // ---------------------------
-// START
+// START GAME
 // ---------------------------
 function startGame(){
   board=Array.from({length:ROWS},()=>Array(COLS).fill(""));
   score=0;
   formedCernadas=false;
   gameActive=true;
+
   document.getElementById("score").textContent="0";
   achievement.textContent="";
+
   newPiece();
   loadRanking();
   animationId=requestAnimationFrame(update);
@@ -276,5 +294,4 @@ document.addEventListener("keydown",e=>{
   if(e.key===" ") while(!collide(px,py+1)) py++;
 });
 
-// ---------------------------
 finishBtn.onclick = gameOver;
